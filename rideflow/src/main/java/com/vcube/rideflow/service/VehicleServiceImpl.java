@@ -9,6 +9,9 @@ import com.vcube.rideflow.dto.request.VehicleRequestDTO;
 import com.vcube.rideflow.dto.response.VehicleResponseDTO;
 import com.vcube.rideflow.entity.DriverProfile;
 import com.vcube.rideflow.entity.Vehicle;
+import com.vcube.rideflow.exception.DriverProfileNotFoundException;
+import com.vcube.rideflow.exception.DuplicateVehicleException;
+import com.vcube.rideflow.exception.VehicleNotFoundException;
 import com.vcube.rideflow.repository.DriverProfileRepository;
 import com.vcube.rideflow.repository.VehicleRepository;
 
@@ -34,13 +37,14 @@ public class VehicleServiceImpl implements VehicleService {
         if (vehicleRepository.existsByRegistrationNumber(
                 request.getRegistrationNumber())) {
 
-            throw new IllegalArgumentException(
-                    "Vehicle registration number already exists");
+        	throw new DuplicateVehicleException(
+                    "Registration number already exists"
+            );
         }
 
         DriverProfile driver = driverProfileRepository
                 .findById(request.getDriverId())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new DriverProfileNotFoundException(
                         "Driver profile not found"));
 
         Vehicle vehicle = new Vehicle();
@@ -66,7 +70,7 @@ public class VehicleServiceImpl implements VehicleService {
     public VehicleResponseDTO getVehicleById(Long id) {
 
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new VehicleNotFoundException(
                         "Vehicle not found with ID: " + id));
 
         return mapToResponse(vehicle);
@@ -90,7 +94,7 @@ public class VehicleServiceImpl implements VehicleService {
             VehicleRequestDTO updatedVehicle) {
 
         Vehicle existingVehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new VehicleNotFoundException(
                         "Vehicle not found with ID: " + id));
 
         // Update registration number
@@ -101,7 +105,7 @@ public class VehicleServiceImpl implements VehicleService {
             if (vehicleRepository.existsByRegistrationNumber(
                     updatedVehicle.getRegistrationNumber())) {
 
-                throw new IllegalArgumentException(
+                throw new DuplicateVehicleException(
                         "Vehicle registration number already exists");
             }
 
@@ -152,7 +156,7 @@ public class VehicleServiceImpl implements VehicleService {
     public void deleteVehicle(Long id) {
 
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new VehicleNotFoundException(
                         "Vehicle not found with ID: " + id));
 
         vehicleRepository.delete(vehicle);
