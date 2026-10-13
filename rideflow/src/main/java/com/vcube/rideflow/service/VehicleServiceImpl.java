@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vcube.rideflow.dto.request.VehicleRequestDTO;
+import com.vcube.rideflow.dto.response.VehicleResponseDTO;
 import com.vcube.rideflow.entity.DriverProfile;
 import com.vcube.rideflow.entity.Vehicle;
 import com.vcube.rideflow.repository.DriverProfileRepository;
@@ -20,116 +22,154 @@ public class VehicleServiceImpl implements VehicleService {
     public VehicleServiceImpl(
             VehicleRepository vehicleRepository,
             DriverProfileRepository driverProfileRepository) {
+
         this.vehicleRepository = vehicleRepository;
         this.driverProfileRepository = driverProfileRepository;
     }
 
+    // 1. Register a vehicle
     @Override
-    public Vehicle registerVehicle(Vehicle vehicle) {
+    public VehicleResponseDTO registerVehicle(VehicleRequestDTO request) {
 
         if (vehicleRepository.existsByRegistrationNumber(
-                vehicle.getRegistrationNumber())) {
+                request.getRegistrationNumber())) {
+
             throw new IllegalArgumentException(
-                "Vehicle registration number already exists");
-        }
-
-        if (vehicle.getBrand() == null || vehicle.getBrand().isBlank()) {
-            throw new IllegalArgumentException("Brand cannot be blank");
-        }
-
-        if (vehicle.getModel() == null || vehicle.getModel().isBlank()) {
-            throw new IllegalArgumentException("Model cannot be blank");
-        }
-
-        if (vehicle.getVehicleType() == null) {
-            throw new IllegalArgumentException("Vehicle type is required");
-        }
-
-        if (vehicle.getDriver() == null ||
-                vehicle.getDriver().getId() == null) {
-            throw new IllegalArgumentException(
-                "Driver profile ID is required");
+                    "Vehicle registration number already exists");
         }
 
         DriverProfile driver = driverProfileRepository
-                .findById(vehicle.getDriver().getId())
+                .findById(request.getDriverId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                    "Driver profile not found"));
+                        "Driver profile not found"));
+
+        Vehicle vehicle = new Vehicle();
 
         vehicle.setDriver(driver);
+        vehicle.setRegistrationNumber(request.getRegistrationNumber());
+        vehicle.setBrand(request.getBrand());
+        vehicle.setModel(request.getModel());
+        vehicle.setColor(request.getColor());
+        vehicle.setVehicleType(request.getVehicleType());
 
-        // New vehicles require verification.
+        // Newly registered vehicles require verification.
         vehicle.setVerified(false);
 
-        return vehicleRepository.save(vehicle);
+        Vehicle savedVehicle = vehicleRepository.save(vehicle);
+
+        return mapToResponse(savedVehicle);
     }
 
+    // 2. Get a vehicle by ID
     @Override
     @Transactional(readOnly = true)
-    public List<Vehicle> getAllVehicles() {
-        return vehicleRepository.findAll();
-    }
+    public VehicleResponseDTO getVehicleById(Long id) {
 
-    @Override
-    @Transactional(readOnly = true)
-    public Vehicle getVehicleById(Long id) {
-        return vehicleRepository.findById(id)
+        Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException(
-                    "Vehicle not found with ID: " + id));
+                        "Vehicle not found with ID: " + id));
+
+        return mapToResponse(vehicle);
     }
 
+    // 3. Get all vehicles
     @Override
-    public Vehicle updateVehicle(Long id, Vehicle updatedVehicle) {
+    @Transactional(readOnly = true)
+    public List<VehicleResponseDTO> getAllVehicles() {
 
-        Vehicle existingVehicle = getVehicleById(id);
+        return vehicleRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
 
+    // 4. Update vehicle details
+    @Override
+    public VehicleResponseDTO updateVehicle(
+            Long id,
+            VehicleRequestDTO updatedVehicle) {
+
+        Vehicle existingVehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Vehicle not found with ID: " + id));
+
+        // Update registration number
         if (updatedVehicle.getRegistrationNumber() != null
                 && !updatedVehicle.getRegistrationNumber()
                         .equals(existingVehicle.getRegistrationNumber())) {
 
             if (vehicleRepository.existsByRegistrationNumber(
                     updatedVehicle.getRegistrationNumber())) {
+
                 throw new IllegalArgumentException(
-                    "Vehicle registration number already exists");
+                        "Vehicle registration number already exists");
             }
 
             existingVehicle.setRegistrationNumber(
-                updatedVehicle.getRegistrationNumber());
+                    updatedVehicle.getRegistrationNumber());
         }
 
+        // Update brand
         if (updatedVehicle.getBrand() != null) {
+
             if (updatedVehicle.getBrand().isBlank()) {
                 throw new IllegalArgumentException(
-                    "Brand cannot be blank");
+                        "Brand cannot be blank");
             }
+
             existingVehicle.setBrand(updatedVehicle.getBrand());
         }
 
+        // Update model
         if (updatedVehicle.getModel() != null) {
+
             if (updatedVehicle.getModel().isBlank()) {
                 throw new IllegalArgumentException(
-                    "Model cannot be blank");
+                        "Model cannot be blank");
             }
+
             existingVehicle.setModel(updatedVehicle.getModel());
         }
 
+        // Update color
         if (updatedVehicle.getColor() != null) {
             existingVehicle.setColor(updatedVehicle.getColor());
         }
 
+        // Update vehicle type
         if (updatedVehicle.getVehicleType() != null) {
             existingVehicle.setVehicleType(
-                updatedVehicle.getVehicleType());
+                    updatedVehicle.getVehicleType());
         }
 
-        return vehicleRepository.save(existingVehicle);
+        Vehicle savedVehicle = vehicleRepository.save(existingVehicle);
+
+        return mapToResponse(savedVehicle);
     }
 
+    // 5. Delete a vehicle
     @Override
     public void deleteVehicle(Long id) {
 
-        Vehicle vehicle = getVehicleById(id);
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Vehicle not found with ID: " + id));
 
         vehicleRepository.delete(vehicle);
+    }
+
+    // Convert Vehicle entity into VehicleResponseDTO
+    private VehicleResponseDTO mapToResponse(Vehicle vehicle) {
+
+        return new VehicleResponseDTO(
+                vehicle.getId(),
+                vehicle.getDriver().getId(),
+                vehicle.getRegistrationNumber(),
+                vehicle.getBrand(),
+                vehicle.getModel(),
+                vehicle.getColor(),
+                vehicle.getVehicleType(),
+                vehicle.getVerified()
+        );
     }
 }

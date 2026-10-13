@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.vcube.rideflow.entity.Vehicle;
+import com.vcube.rideflow.dto.request.VehicleRequestDTO;
+import com.vcube.rideflow.dto.response.VehicleResponseDTO;
 import com.vcube.rideflow.service.VehicleService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/vehicles")
@@ -27,26 +30,27 @@ public class VehicleController {
 	}
 
 	@PostMapping
-	public ResponseEntity<Vehicle> registerVehicle(@RequestBody Vehicle vehicle) {
+	public ResponseEntity<VehicleResponseDTO> registerVehicle(@Valid @RequestBody VehicleRequestDTO vehicle) {
 
-		Vehicle savedVehicle = vehicleService.registerVehicle(vehicle);
+		VehicleResponseDTO savedVehicle = vehicleService.registerVehicle(vehicle);
 
 		return ResponseEntity.status(HttpStatus.CREATED).body(savedVehicle);
 	}
 
 	@GetMapping
-	public ResponseEntity<List<Vehicle>> getAllVehicles() {
+	public ResponseEntity<List<VehicleResponseDTO>> getAllVehicles() {
 		return ResponseEntity.ok(vehicleService.getAllVehicles());
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<Vehicle> getVehicleById(@PathVariable Long id) {
+	public ResponseEntity<VehicleResponseDTO> getVehicleById(@PathVariable Long id) {
 
 		return ResponseEntity.ok(vehicleService.getVehicleById(id));
 	}
 
 	@PutMapping("/{id}")
-	public ResponseEntity<Vehicle> updateVehicle(@PathVariable Long id, @RequestBody Vehicle vehicle) {
+	public ResponseEntity<VehicleResponseDTO> updateVehicle(@PathVariable Long id,
+			@Valid @RequestBody VehicleRequestDTO vehicle) {
 
 		return ResponseEntity.ok(vehicleService.updateVehicle(id, vehicle));
 	}
