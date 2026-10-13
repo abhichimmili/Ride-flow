@@ -2,16 +2,17 @@ package com.vcube.rideflow.service;
 
 import java.util.List;
 
-import com.vcube.rideflow.entity.Vehicle;
+import com.vcube.rideflow.dto.request.VehicleRequestDTO;
+import com.vcube.rideflow.dto.response.VehicleResponseDTO;
 
 public interface VehicleService {
-	Vehicle registerVehicle(Vehicle vehicle);
+	VehicleResponseDTO registerVehicle(VehicleRequestDTO vehicle);
 
-	List<Vehicle> getAllVehicles();
+	List<VehicleResponseDTO> getAllVehicles();
 
-	Vehicle getVehicleById(Long id);
+	VehicleResponseDTO getVehicleById(Long id);
 
-	Vehicle updateVehicle(Long id, Vehicle vehicle);
+	VehicleResponseDTO updateVehicle(Long id, VehicleRequestDTO vehicle);
 
 	void deleteVehicle(Long id);
 }
