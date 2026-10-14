@@ -7,5 +7,7 @@ import com.vcube.rideflow.entity.DriverProfile;
 
 @Repository
 public interface DriverProfileRepository extends JpaRepository<DriverProfile, Long> {
+	
+	boolean existsByUser_Id(Long userId);
 
 }
