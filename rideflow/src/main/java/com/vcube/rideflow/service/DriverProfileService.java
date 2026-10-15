@@ -92,7 +92,6 @@ public class DriverProfileService {
 
 		existingProfile.setLicenseNumber(licenseNumber);
 
-		// Keep user, licenseVerified and availabilityStatus unchanged.
 		DriverProfile updatedProfile = driverProfileRepository.save(existingProfile);
 
 		return mapToResponse(updatedProfile);
@@ -110,5 +109,21 @@ public class DriverProfileService {
 
 		return new DriverProfileResponseDTO(profile.getId(), profile.getUser().getId(), profile.getLicenseNumber(),
 				profile.getLicenseVerified(), profile.getAvailabilityStatus());
+	}
+
+	@Transactional
+	public DriverProfileResponseDTO convertCustomerToDriver(DriverProfileRequestDTO request) {
+
+		User user = userRepository.findById(request.getUserId())
+				.orElseThrow(() -> new UserNotFoundException("User not found"));
+
+		if (user.getRole() != Role.CUSTOMER) {
+			throw new InvalidUserRoleException("Only customers can be converted to drivers");
+		}
+
+		user.setRole(Role.DRIVER);
+		userRepository.save(user);
+
+		return createDriverProfile(request);
 	}
 }

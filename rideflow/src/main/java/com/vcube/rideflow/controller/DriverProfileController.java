@@ -57,4 +57,15 @@ public class DriverProfileController {
 		driverProfileService.deleteDriverProfile(id);
 		return ResponseEntity.noContent().build();
 	}
+
+	@PostMapping("/convert/{userId}")
+	public ResponseEntity<DriverProfileResponseDTO> convertCustomerToDriver(@PathVariable Long userId,
+			@Valid @RequestBody DriverProfileRequestDTO request) {
+
+		if (!userId.equals(request.getUserId())) {
+			throw new IllegalArgumentException("Path userId and request userId must match");
+		}
+
+		return ResponseEntity.ok(driverProfileService.convertCustomerToDriver(request));
+	}
 }
