@@ -2,50 +2,111 @@
 package com.vcube.rideflow.service;
 
 import java.util.List;
+import java.util.Locale;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.vcube.rideflow.dto.request.UserRequestDTO;
+import com.vcube.rideflow.dto.response.UserResponseDTO;
 import com.vcube.rideflow.entity.User;
+import com.vcube.rideflow.entity.enums.Role;
+import com.vcube.rideflow.exception.DuplicateEmailException;
+import com.vcube.rideflow.exception.DuplicatePhoneException;
+import com.vcube.rideflow.exception.UserNotFoundException;
 import com.vcube.rideflow.repository.UserRepository;
-
-import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class UserService {
 
 	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
 
-	public UserService(UserRepository userRepository) {
+	public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
 		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
 	}
 
-	public User createUser(User user) {
-		return userRepository.save(user);
+	@Transactional
+	public UserResponseDTO createUser(UserRequestDTO request) {
+
+		String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+		String phone = request.getPhone().trim();
+
+		if (userRepository.existsByEmail(email)) {
+			throw new DuplicateEmailException("Email is already registered");
+		}
+
+		if (userRepository.existsByPhone(phone)) {
+			throw new DuplicatePhoneException("Phone number is already registered");
+		}
+
+		User user = new User();
+		user.setFullName(request.getFullName().trim());
+		user.setEmail(email);
+		user.setPassword(passwordEncoder.encode(request.getPassword()));
+		user.setPhone(phone);
+
+		// Public registration always creates a CUSTOMER.
+		user.setRole(Role.CUSTOMER);
+		user.setActive(true);
+
+		User savedUser = userRepository.save(user);
+
+		return mapToResponse(savedUser);
 	}
 
-	public List<User> getAllUsers() {
-		return userRepository.findAll();
+	@Transactional(readOnly = true)
+	public List<UserResponseDTO> getAllUsers() {
+		return userRepository.findAll().stream().map(this::mapToResponse).toList();
 	}
 
-	public User getUserById(Long id) {
-		return userRepository.findById(id)
-				.orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
+	@Transactional(readOnly = true)
+	public UserResponseDTO getUserById(Long id) {
+		User user = userRepository.findById(id)
+				.orElseThrow(() -> new UserNotFoundException("User not found with ID: " + id));
+
+		return mapToResponse(user);
 	}
 
-	public User updateUser(Long id, User updatedUser) {
-		User existingUser = getUserById(id);
+	@Transactional
+	public UserResponseDTO updateUser(Long id, UserRequestDTO request) {
 
-		existingUser.setFullName(updatedUser.getFullName());
-		existingUser.setEmail(updatedUser.getEmail());
-		existingUser.setPhone(updatedUser.getPhone());
-		existingUser.setRole(updatedUser.getRole());
-		existingUser.setActive(updatedUser.getActive());
+		User existingUser = userRepository.findById(id)
+				.orElseThrow(() -> new UserNotFoundException("User not found with ID: " + id));
 
-		return userRepository.save(existingUser);
+		String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+		String phone = request.getPhone().trim();
+
+		if (userRepository.existsByEmailAndIdNot(email, id)) {
+			throw new DuplicateEmailException("Email is already registered");
+		}
+
+		if (userRepository.existsByPhoneAndIdNot(phone, id)) {
+			throw new DuplicatePhoneException("Phone number is already registered");
+		}
+
+		existingUser.setFullName(request.getFullName().trim());
+		existingUser.setEmail(email);
+		existingUser.setPhone(phone);
+		existingUser.setPassword(passwordEncoder.encode(request.getPassword()));
+
+		User updatedUser = userRepository.save(existingUser);
+
+		return mapToResponse(updatedUser);
 	}
 
+	@Transactional
 	public void deleteUser(Long id) {
-		User existingUser = getUserById(id);
+		User existingUser = userRepository.findById(id)
+				.orElseThrow(() -> new UserNotFoundException("User not found with ID: " + id));
+
 		userRepository.delete(existingUser);
+	}
+
+	private UserResponseDTO mapToResponse(User user) {
+		return new UserResponseDTO(user.getId(), user.getFullName(), user.getEmail(), user.getPhone(), user.getRole(),
+				user.getActive());
 	}
 }

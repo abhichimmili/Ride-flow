@@ -33,3 +33,24 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Eclipse workspace metadata
+.metadata/
+
+# Build output
+target/
+bin/
+build/
+
+# IDE files
+.project
+.classpath
+.settings/
+.sts4-cache/
+.idea/
+.vscode/
+
+# Generated files
+*.classgit rm -r --cached --ignore-unmatch rideflow/.metadata rideflow/bin
+
+.gitignore

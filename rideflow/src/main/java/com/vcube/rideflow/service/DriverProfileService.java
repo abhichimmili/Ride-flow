@@ -6,13 +6,19 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vcube.rideflow.dto.request.DriverProfileRequestDTO;
+import com.vcube.rideflow.dto.response.DriverProfileResponseDTO;
 import com.vcube.rideflow.entity.DriverProfile;
 import com.vcube.rideflow.entity.User;
 import com.vcube.rideflow.entity.enums.AvailabilityStatus;
+import com.vcube.rideflow.entity.enums.Role;
+import com.vcube.rideflow.exception.DriverProfileAlreadyExistsException;
+import com.vcube.rideflow.exception.DriverProfileNotFoundException;
+import com.vcube.rideflow.exception.DuplicateLicenseException;
+import com.vcube.rideflow.exception.InvalidUserRoleException;
+import com.vcube.rideflow.exception.UserNotFoundException;
 import com.vcube.rideflow.repository.DriverProfileRepository;
 import com.vcube.rideflow.repository.UserRepository;
-
-import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class DriverProfileService {
@@ -26,56 +32,83 @@ public class DriverProfileService {
 	}
 
 	@Transactional
-	public DriverProfile createDriverProfile(Long userId, DriverProfile profile) {
+	public DriverProfileResponseDTO createDriverProfile(DriverProfileRequestDTO request) {
+
+		Long userId = request.getUserId();
 
 		User user = userRepository.findById(userId)
-				.orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+				.orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
+
+		if (user.getRole() != Role.DRIVER) {
+			throw new InvalidUserRoleException("User must have the DRIVER role to create a driver profile");
+		}
 
 		if (driverProfileRepository.existsByUser_Id(userId)) {
-			throw new IllegalArgumentException("Driver profile already exists for this user");
+			throw new DriverProfileAlreadyExistsException("Driver profile already exists for this user");
 		}
 
-		profile.setId(null);
+		String licenseNumber = request.getLicenseNumber().trim();
+
+		if (driverProfileRepository.existsByLicenseNumber(licenseNumber)) {
+			throw new DuplicateLicenseException("License number is already registered");
+		}
+
+		DriverProfile profile = new DriverProfile();
 		profile.setUser(user);
+		profile.setLicenseNumber(licenseNumber);
+		profile.setLicenseVerified(false);
+		profile.setAvailabilityStatus(AvailabilityStatus.OFFLINE);
 
-		if (profile.getLicenseVerified() == null) {
-			profile.setLicenseVerified(false);
-		}
+		DriverProfile savedProfile = driverProfileRepository.save(profile);
 
-		if (profile.getAvailabilityStatus() == null) {
-			profile.setAvailabilityStatus(AvailabilityStatus.OFFLINE);
-		}
-
-		return driverProfileRepository.save(profile);
+		return mapToResponse(savedProfile);
 	}
 
 	@Transactional(readOnly = true)
-	public List<DriverProfile> getAllDriverProfiles() {
-		return driverProfileRepository.findAll();
+	public List<DriverProfileResponseDTO> getAllDriverProfiles() {
+		return driverProfileRepository.findAll().stream().map(this::mapToResponse).toList();
 	}
 
-	// Get driver profile by ID
 	@Transactional(readOnly = true)
-	public DriverProfile getDriverProfileById(Long id) {
-		return driverProfileRepository.findById(id)
-				.orElseThrow(() -> new EntityNotFoundException("Driver profile not found with ID: " + id));
+	public DriverProfileResponseDTO getDriverProfileById(Long id) {
+		DriverProfile profile = driverProfileRepository.findById(id)
+				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + id));
+
+		return mapToResponse(profile);
 	}
 
 	@Transactional
-	public DriverProfile updateDriverProfile(Long id, DriverProfile updatedProfile) {
+	public DriverProfileResponseDTO updateDriverProfile(Long id, DriverProfileRequestDTO request) {
 
-		DriverProfile existingProfile = getDriverProfileById(id);
+		DriverProfile existingProfile = driverProfileRepository.findById(id)
+				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + id));
 
-		existingProfile.setLicenseNumber(updatedProfile.getLicenseNumber());
+		String licenseNumber = request.getLicenseNumber().trim();
 
-		existingProfile.setAvailabilityStatus(updatedProfile.getAvailabilityStatus());
+		if (!existingProfile.getLicenseNumber().equals(licenseNumber)
+				&& driverProfileRepository.existsByLicenseNumber(licenseNumber)) {
+			throw new DuplicateLicenseException("License number is already registered");
+		}
 
-		return driverProfileRepository.save(existingProfile);
+		existingProfile.setLicenseNumber(licenseNumber);
+
+		// Keep user, licenseVerified and availabilityStatus unchanged.
+		DriverProfile updatedProfile = driverProfileRepository.save(existingProfile);
+
+		return mapToResponse(updatedProfile);
 	}
 
 	@Transactional
 	public void deleteDriverProfile(Long id) {
-		DriverProfile existingProfile = getDriverProfileById(id);
+		DriverProfile existingProfile = driverProfileRepository.findById(id)
+				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + id));
+
 		driverProfileRepository.delete(existingProfile);
+	}
+
+	private DriverProfileResponseDTO mapToResponse(DriverProfile profile) {
+
+		return new DriverProfileResponseDTO(profile.getId(), profile.getUser().getId(), profile.getLicenseNumber(),
+				profile.getLicenseVerified(), profile.getAvailabilityStatus());
 	}
 }

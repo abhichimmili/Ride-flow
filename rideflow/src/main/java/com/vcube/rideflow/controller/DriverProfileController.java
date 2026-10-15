@@ -3,9 +3,14 @@ package com.vcube.rideflow.controller;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.vcube.rideflow.entity.DriverProfile;
+import com.vcube.rideflow.dto.request.DriverProfileRequestDTO;
+import com.vcube.rideflow.dto.response.DriverProfileResponseDTO;
 import com.vcube.rideflow.service.DriverProfileService;
 
 @RestController
@@ -18,28 +23,38 @@ public class DriverProfileController {
 		this.driverProfileService = driverProfileService;
 	}
 
-	@PostMapping("/user/{userId}")
-	public DriverProfile createDriverProfile(@PathVariable Long userId, @RequestBody DriverProfile profile) {
-		return driverProfileService.createDriverProfile(userId, profile);
+	@PostMapping
+	public ResponseEntity<DriverProfileResponseDTO> createDriverProfile(
+			@Valid @RequestBody DriverProfileRequestDTO request) {
+
+		DriverProfileResponseDTO response = driverProfileService.createDriverProfile(request);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 	@GetMapping
-	public List<DriverProfile> getAllDriverProfiles() {
-		return driverProfileService.getAllDriverProfiles();
+	public ResponseEntity<List<DriverProfileResponseDTO>> getAllDriverProfiles() {
+
+		return ResponseEntity.ok(driverProfileService.getAllDriverProfiles());
 	}
 
 	@GetMapping("/{id}")
-	public DriverProfile getDriverProfileById(@PathVariable Long id) {
-		return driverProfileService.getDriverProfileById(id);
+	public ResponseEntity<DriverProfileResponseDTO> getDriverProfileById(@PathVariable Long id) {
+
+		return ResponseEntity.ok(driverProfileService.getDriverProfileById(id));
 	}
 
 	@PutMapping("/{id}")
-	public DriverProfile updateDriverProfile(@PathVariable Long id, @RequestBody DriverProfile profile) {
-		return driverProfileService.updateDriverProfile(id, profile);
+	public ResponseEntity<DriverProfileResponseDTO> updateDriverProfile(@PathVariable Long id,
+			@Valid @RequestBody DriverProfileRequestDTO request) {
+
+		return ResponseEntity.ok(driverProfileService.updateDriverProfile(id, request));
 	}
 
 	@DeleteMapping("/{id}")
-	public void deleteDriverProfile(@PathVariable Long id) {
+	public ResponseEntity<Void> deleteDriverProfile(@PathVariable Long id) {
+
 		driverProfileService.deleteDriverProfile(id);
+		return ResponseEntity.noContent().build();
 	}
 }
