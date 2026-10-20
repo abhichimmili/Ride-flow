@@ -27,6 +27,12 @@ public class GlobalExceptionHandler {
 		return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
 
+	@ExceptionHandler(RideNotFoundException.class)
+	public ResponseEntity<Map<String, Object>> handleRideNotFound(RideNotFoundException ex) {
+
+		return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
+	}
+
 	@ExceptionHandler(DuplicateVehicleException.class)
 	public ResponseEntity<Map<String, Object>> handleDuplicateVehicle(DuplicateVehicleException ex) {
 

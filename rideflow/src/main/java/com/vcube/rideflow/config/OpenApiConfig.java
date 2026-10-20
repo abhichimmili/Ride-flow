@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
 	@Bean
-	public OpenAPI rideFlowOpenAPI() {
+	OpenAPI rideFlowOpenAPI() {
 		String schemeName = "Bearer Authentication";
 
 		return new OpenAPI()

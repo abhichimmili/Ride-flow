@@ -22,7 +22,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
 		http
 				// This is a stateless REST API using JWTs.
@@ -49,6 +49,10 @@ public class SecurityConfig {
 
 						// Only customers can create rides.
 						.requestMatchers(HttpMethod.POST, "/api/rides", "/api/rides/").hasRole("CUSTOMER")
+						
+						.requestMatchers(HttpMethod.GET, "/api/rides/**").hasRole("CUSTOMER")
+
+						.requestMatchers(HttpMethod.PATCH, "/api/rides/*/cancel").hasRole("CUSTOMER")
 
 						// Only drivers can accept rides.
 						.requestMatchers(HttpMethod.POST, "/api/driver/accept-ride/**").hasRole("DRIVER")
