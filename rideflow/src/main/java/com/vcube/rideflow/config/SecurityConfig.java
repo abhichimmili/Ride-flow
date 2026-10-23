@@ -3,9 +3,11 @@ package com.vcube.rideflow.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.vcube.rideflow.security.JwtAuthenticationFilter;
@@ -20,7 +22,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
 		http
 				// This is a stateless REST API using JWTs.
@@ -32,6 +34,9 @@ public class SecurityConfig {
 				// Do not create HTTP sessions.
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+				.exceptionHandling(exception -> exception
+						.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+
 				// Configure access rules.
 				.authorizeHttpRequests(auth -> auth
 
@@ -40,11 +45,14 @@ public class SecurityConfig {
 						.permitAll()
 
 						// Public registration and login endpoints.
-						.requestMatchers(HttpMethod.POST, "/api/users", "/api/auth/register", "/api/auth/login")
-						.permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
 
 						// Only customers can create rides.
 						.requestMatchers(HttpMethod.POST, "/api/rides", "/api/rides/").hasRole("CUSTOMER")
+						
+						.requestMatchers(HttpMethod.GET, "/api/rides/**").hasRole("CUSTOMER")
+
+						.requestMatchers(HttpMethod.PATCH, "/api/rides/*/cancel").hasRole("CUSTOMER")
 
 						// Only drivers can accept rides.
 						.requestMatchers(HttpMethod.POST, "/api/driver/accept-ride/**").hasRole("DRIVER")

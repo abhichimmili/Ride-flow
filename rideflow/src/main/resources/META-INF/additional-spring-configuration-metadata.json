@@ -1,0 +1,22 @@
+{"properties": [
+  {
+    "name": "ride.fare.base",
+    "type": "java.lang.String",
+    "description": "A description for 'ride.fare.base'"
+  },
+  {
+    "name": "ride.fare.per-km",
+    "type": "java.lang.String",
+    "description": "A description for 'ride.fare.per-km'"
+  },
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.secret'"
+  },
+  {
+    "name": "jwt.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.expiration'"
+  }
+]}

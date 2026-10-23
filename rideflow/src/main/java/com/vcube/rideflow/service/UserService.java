@@ -8,7 +8,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.vcube.rideflow.dto.request.DriverProfileRequestDTO;
+import com.vcube.rideflow.dto.request.DriverRegistrationRequestDTO;
 import com.vcube.rideflow.dto.request.UserRequestDTO;
+import com.vcube.rideflow.dto.response.DriverProfileResponseDTO;
 import com.vcube.rideflow.dto.response.UserResponseDTO;
 import com.vcube.rideflow.entity.User;
 import com.vcube.rideflow.entity.enums.Role;
@@ -22,10 +25,13 @@ public class UserService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final DriverProfileService driverProfileService;
 
-	public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+	public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+			DriverProfileService driverProfileService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.driverProfileService = driverProfileService;
 	}
 
 	@Transactional
@@ -48,7 +54,6 @@ public class UserService {
 		user.setPassword(passwordEncoder.encode(request.getPassword()));
 		user.setPhone(phone);
 
-		// Public registration always creates a CUSTOMER.
 		user.setRole(Role.CUSTOMER);
 		user.setActive(true);
 
@@ -109,4 +114,36 @@ public class UserService {
 		return new UserResponseDTO(user.getId(), user.getFullName(), user.getEmail(), user.getPhone(), user.getRole(),
 				user.getActive());
 	}
+
+	@Transactional
+	public DriverProfileResponseDTO registerDriver(DriverRegistrationRequestDTO request) {
+
+		String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+		String phone = request.getPhone().trim();
+
+		if (userRepository.existsByEmail(email)) {
+			throw new DuplicateEmailException("Email is already registered");
+		}
+
+		if (userRepository.existsByPhone(phone)) {
+			throw new DuplicatePhoneException("Phone number is already registered");
+		}
+
+		User user = new User();
+		user.setFullName(request.getFullName().trim());
+		user.setEmail(email);
+		user.setPassword(passwordEncoder.encode(request.getPassword()));
+		user.setPhone(phone);
+		user.setRole(Role.DRIVER);
+		user.setActive(true);
+
+		User savedUser = userRepository.save(user);
+
+		DriverProfileRequestDTO profileRequest = new DriverProfileRequestDTO();
+		profileRequest.setUserId(savedUser.getId());
+		profileRequest.setLicenseNumber(request.getLicenseNumber());
+
+		return driverProfileService.createDriverProfile(profileRequest);
+	}
+
 }

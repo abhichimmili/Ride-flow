@@ -13,30 +13,22 @@ import com.vcube.rideflow.repository.UserRepository;
 @Service
 public class RideFlowUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+	private final UserRepository userRepository;
 
-    public RideFlowUserDetailsService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+	public RideFlowUserDetailsService(UserRepository userRepository) {
+		this.userRepository = userRepository;
+	}
 
-    @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
+	@Override
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
-        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+		String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
 
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() ->
-                    new UsernameNotFoundException(
-                        "User not found with email: " + normalizedEmail
-                    )
-                );
+		User user = userRepository.findByEmail(normalizedEmail)
+				.orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + normalizedEmail));
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .authorities("ROLE_" + user.getRole().name())
-                .disabled(!user.getActive())
-                .build();
-    }
+		return org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
+				.password(user.getPassword()).authorities("ROLE_" + user.getRole().name()).disabled(!user.getActive())
+				.build();
+	}
 }
