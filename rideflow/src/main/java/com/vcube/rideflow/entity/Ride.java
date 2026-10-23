@@ -1,6 +1,7 @@
 package com.vcube.rideflow.entity;
 
 import java.math.BigDecimal;
+import org.locationtech.jts.geom.Point;
 import java.time.LocalDateTime;
 
 import com.vcube.rideflow.entity.enums.RideStatus;
@@ -57,6 +58,9 @@ public class Ride {
 
 	@Column(name = "final_fare", precision = 10, scale = 2)
 	private BigDecimal finalFare;
+
+	@Column(name = "pickup_location", columnDefinition = "geography(Point, 4326)")
+	private Point pickupLocation;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 30)

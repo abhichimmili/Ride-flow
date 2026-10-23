@@ -3,7 +3,9 @@ package com.vcube.rideflow.entity;
 import java.time.LocalDateTime;
 
 import com.vcube.rideflow.entity.enums.AvailabilityStatus;
-
+import org.locationtech.jts.geom.Point;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -41,6 +43,9 @@ public class DriverProfile {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "availability_status", nullable = false)
 	private AvailabilityStatus availabilityStatus;
+	
+	@Column(name = "location", columnDefinition = "geography(Point, 4326)")
+	private Point location;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
