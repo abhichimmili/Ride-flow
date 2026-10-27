@@ -3,15 +3,25 @@ package com.vcube.rideflow.controller;
 
 import java.util.List;
 
-import jakarta.validation.Valid;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.vcube.rideflow.dto.request.DriverLocationUpdateDTO;
 import com.vcube.rideflow.dto.request.DriverProfileRequestDTO;
 import com.vcube.rideflow.dto.response.DriverProfileResponseDTO;
+import com.vcube.rideflow.dto.response.NearbyDriverResponseDTO;
 import com.vcube.rideflow.service.DriverProfileService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/driver-profiles")
@@ -67,5 +77,21 @@ public class DriverProfileController {
 		}
 
 		return ResponseEntity.ok(driverProfileService.convertCustomerToDriver(request));
+	}
+
+	@GetMapping("/nearby")
+	public ResponseEntity<List<NearbyDriverResponseDTO>> findNearbyAvailableDrivers(@RequestParam double latitude,
+			@RequestParam double longitude, @RequestParam(defaultValue = "5") double radiusKm) {
+
+		return ResponseEntity.ok(driverProfileService.findNearbyAvailableDrivers(latitude, longitude, radiusKm));
+	}
+
+	@PutMapping("/{id}/location")
+	public ResponseEntity<Void> updateDriverLocation(@PathVariable Long id,
+			@Valid @RequestBody DriverLocationUpdateDTO request) {
+
+		driverProfileService.updateDriverLocation(id, request.latitude(), request.longitude());
+
+		return ResponseEntity.noContent().build();
 	}
 }
