@@ -2,10 +2,13 @@
 package com.vcube.rideflow.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.vcube.rideflow.dto.request.DriverProfileRequestDTO;
 import com.vcube.rideflow.dto.response.DriverProfileResponseDTO;
@@ -80,7 +83,8 @@ public class DriverProfileService {
 	}
 
 	@Transactional
-	public void updateDriverLocation(Long driverProfileId, double latitude, double longitude) {
+	public void updateDriverLocation(Long driverProfileId, double latitude, double longitude,
+			String authenticatedEmail) {
 
 		if (!Double.isFinite(latitude) || latitude < -90 || latitude > 90) {
 			throw new IllegalArgumentException("Latitude must be between -90 and 90");
@@ -90,6 +94,14 @@ public class DriverProfileService {
 			throw new IllegalArgumentException("Longitude must be between -180 and 180");
 		}
 
+		DriverProfile profile = driverProfileRepository.findById(driverProfileId).orElseThrow(
+				() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + driverProfileId));
+
+		String ownerEmail = profile.getUser().getEmail();
+
+		if (!ownerEmail.equalsIgnoreCase(authenticatedEmail)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot update another driver's location");
+		}
 		int updatedRows = driverProfileRepository.updateDriverLocation(driverProfileId, latitude, longitude);
 
 		if (updatedRows == 0) {
@@ -174,6 +186,6 @@ public class DriverProfileService {
 					(String) row[2], (Boolean) row[3], row[4].toString(), ((Number) row[5]).doubleValue()));
 		}
 
-		return results;
+		return results.stream().sorted(Comparator.comparingDouble(NearbyDriverResponseDTO::distanceKm)).toList();
 	}
 }

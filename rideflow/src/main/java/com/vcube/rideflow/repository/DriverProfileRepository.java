@@ -1,6 +1,7 @@
 package com.vcube.rideflow.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -32,8 +33,11 @@ public interface DriverProfileRepository extends JpaRepository<DriverProfile, Lo
 			        )::geography
 			    ) / 1000.0 AS distance_km
 			FROM driver_profiles dp
+			JOIN users u ON u.id = dp.user_id
 			WHERE dp.location IS NOT NULL
-			  AND dp.availability_status = 'AVAILABLE'
+			  AND dp.availability_status = 'ONLINE'
+			  AND dp.license_verified = TRUE
+			  AND u.active = TRUE
 			  AND ST_DWithin(
 			        dp.location,
 			        ST_SetSRID(
@@ -46,20 +50,19 @@ public interface DriverProfileRepository extends JpaRepository<DriverProfile, Lo
 			""", nativeQuery = true)
 	List<Object[]> findNearbyAvailableDrivers(@Param("latitude") double latitude, @Param("longitude") double longitude,
 			@Param("radiusMeters") double radiusMeters);
-	
+
 	@Modifying
 	@Query(value = """
-	        UPDATE driver_profiles
-	        SET location =
-	            ST_SetSRID(
-	                ST_MakePoint(:longitude, :latitude),
-	                4326
-	            )::geography
-	        WHERE id = :driverProfileId
-	        """, nativeQuery = true)
-	int updateDriverLocation(
-	        @Param("driverProfileId") Long driverProfileId,
-	        @Param("latitude") double latitude,
-	        @Param("longitude") double longitude
-	);
+			UPDATE driver_profiles
+			SET location =
+			    ST_SetSRID(
+			        ST_MakePoint(:longitude, :latitude),
+			        4326
+			    )::geography
+			WHERE id = :driverProfileId
+			""", nativeQuery = true)
+	int updateDriverLocation(@Param("driverProfileId") Long driverProfileId, @Param("latitude") double latitude,
+			@Param("longitude") double longitude);
+	
+	Optional<DriverProfile> findByUser_Email(String email);
 }

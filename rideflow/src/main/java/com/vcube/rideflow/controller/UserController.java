@@ -32,14 +32,6 @@ public class UserController {
 		this.userService = userService;
 	}
 
-	@PostMapping
-	public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody UserRequestDTO request) {
-
-		UserResponseDTO response = userService.createUser(request);
-
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
-	}
-
 	@GetMapping
 	public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
 		return ResponseEntity.ok(userService.getAllUsers());
@@ -62,15 +54,6 @@ public class UserController {
 	public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
 		userService.deleteUser(id);
 		return ResponseEntity.noContent().build();
-	}
-
-	@PostMapping("/register-driver")
-	public ResponseEntity<DriverProfileResponseDTO> registerDriver(
-			@Valid @RequestBody DriverRegistrationRequestDTO request) {
-
-		DriverProfileResponseDTO response = userService.registerDriver(request);
-
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 }

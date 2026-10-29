@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,15 +34,6 @@ public class DriverProfileController {
 		this.driverProfileService = driverProfileService;
 	}
 
-	@PostMapping
-	public ResponseEntity<DriverProfileResponseDTO> createDriverProfile(
-			@Valid @RequestBody DriverProfileRequestDTO request) {
-
-		DriverProfileResponseDTO response = driverProfileService.createDriverProfile(request);
-
-		return ResponseEntity.status(HttpStatus.CREATED).body(response);
-	}
-
 	@GetMapping
 	public ResponseEntity<List<DriverProfileResponseDTO>> getAllDriverProfiles() {
 
@@ -68,13 +60,9 @@ public class DriverProfileController {
 		return ResponseEntity.noContent().build();
 	}
 
-	@PostMapping("/convert/{userId}")
-	public ResponseEntity<DriverProfileResponseDTO> convertCustomerToDriver(@PathVariable Long userId,
+	@PostMapping("/convert")
+	public ResponseEntity<DriverProfileResponseDTO> convertCustomerToDriver(
 			@Valid @RequestBody DriverProfileRequestDTO request) {
-
-		if (!userId.equals(request.getUserId())) {
-			throw new IllegalArgumentException("Path userId and request userId must match");
-		}
 
 		return ResponseEntity.ok(driverProfileService.convertCustomerToDriver(request));
 	}
@@ -88,9 +76,10 @@ public class DriverProfileController {
 
 	@PutMapping("/{id}/location")
 	public ResponseEntity<Void> updateDriverLocation(@PathVariable Long id,
-			@Valid @RequestBody DriverLocationUpdateDTO request) {
+			@Valid @RequestBody DriverLocationUpdateDTO request, Authentication authentication) {
 
-		driverProfileService.updateDriverLocation(id, request.latitude(), request.longitude());
+		driverProfileService.updateDriverLocation(id, request.latitude(), request.longitude(),
+				authentication.getName());
 
 		return ResponseEntity.noContent().build();
 	}

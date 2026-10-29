@@ -17,66 +17,54 @@ import com.vcube.rideflow.service.RideService;
 @RequestMapping("/api/rides")
 public class RideController {
 
-    private final RideService rideService;
+	private final RideService rideService;
 
-    public RideController(RideService rideService) {
-        this.rideService = rideService;
-    }
+	public RideController(RideService rideService) {
+		this.rideService = rideService;
+	}
 
-    // 1. Create a ride request
-    @PostMapping
-    public ResponseEntity<RideResponseDTO> createRide(
-            @Valid @RequestBody RideRequestDTO request,
-            Authentication authentication) {
+	// 1. Create a ride request
+	@PostMapping
+	public ResponseEntity<RideResponseDTO> createRide(@Valid @RequestBody RideRequestDTO request,
+			Authentication authentication) {
 
-        String customerEmail = authentication.getName();
+		String customerEmail = authentication.getName();
 
-        RideResponseDTO response =
-                rideService.createRide(customerEmail, request);
+		RideResponseDTO response = rideService.createRide(customerEmail, request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
-    }
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
 
-    // 2. Get a ride by ID
-    @GetMapping("/{id}")
-    public ResponseEntity<RideResponseDTO> getRideById(
-            @PathVariable Long id,
-            Authentication authentication) {
+	// 2. Get a ride by ID
+	@GetMapping("/{id}")
+	public ResponseEntity<RideResponseDTO> getRideById(@PathVariable Long id, Authentication authentication) {
 
-        String customerEmail = authentication.getName();
+		String customerEmail = authentication.getName();
 
-        RideResponseDTO response =
-                rideService.getRideById(id, customerEmail);
+		RideResponseDTO response = rideService.getRideById(id, customerEmail);
 
-        return ResponseEntity.ok(response);
-    }
+		return ResponseEntity.ok(response);
+	}
 
-    // 3. Get the authenticated customer's ride history
-    @GetMapping("/my-rides")
-    public ResponseEntity<List<RideResponseDTO>> getMyRides(
-            Authentication authentication) {
+	// 3. Get the authenticated customer's ride history
+	@GetMapping("/my-rides")
+	public ResponseEntity<List<RideResponseDTO>> getMyRides(Authentication authentication) {
 
-        String customerEmail = authentication.getName();
+		String customerEmail = authentication.getName();
 
-        List<RideResponseDTO> rides =
-                rideService.getMyRides(customerEmail);
+		List<RideResponseDTO> rides = rideService.getMyRides(customerEmail);
 
-        return ResponseEntity.ok(rides);
-    }
+		return ResponseEntity.ok(rides);
+	}
 
-    // 4. Cancel an eligible ride
-    @PatchMapping("/{id}/cancel")
-    public ResponseEntity<RideResponseDTO> cancelRide(
-            @PathVariable Long id,
-            Authentication authentication) {
+	// 4. Cancel an eligible ride
+	@PatchMapping("/{id}/cancel")
+	public ResponseEntity<RideResponseDTO> cancelRide(@PathVariable Long id, Authentication authentication) {
 
-        String customerEmail = authentication.getName();
+		String customerEmail = authentication.getName();
 
-        RideResponseDTO response =
-                rideService.cancelRide(id, customerEmail);
+		RideResponseDTO response = rideService.cancelRide(id, customerEmail);
 
-        return ResponseEntity.ok(response);
-    }
+		return ResponseEntity.ok(response);
+	}
 }
