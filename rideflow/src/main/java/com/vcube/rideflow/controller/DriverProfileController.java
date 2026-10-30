@@ -73,9 +73,9 @@ public class DriverProfileController {
 
 	@PostMapping("/convert")
 	public ResponseEntity<DriverProfileResponseDTO> convertCustomerToDriver(
-			@Valid @RequestBody DriverProfileRequestDTO request) {
+			@Valid @RequestBody DriverProfileRequestDTO request,Authentication authentication) {
 
-		return ResponseEntity.ok(driverProfileService.convertCustomerToDriver(request));
+		return ResponseEntity.ok(driverProfileService.convertCustomerToDriver(request,authentication.getName()));
 	}
 
 	@GetMapping("/nearby")

@@ -198,10 +198,10 @@ public class DriverProfileService {
 	}
 
 	@Transactional
-	public DriverProfileResponseDTO convertCustomerToDriver(DriverProfileRequestDTO request) {
+	public DriverProfileResponseDTO convertCustomerToDriver(DriverProfileRequestDTO request,String authenticatedEmail) {
 
-		User user = userRepository.findById(request.getUserId())
-				.orElseThrow(() -> new UserNotFoundException("User not found"));
+		User user = userRepository.findByEmail(authenticatedEmail)
+		        .orElseThrow(() -> new UserNotFoundException("User not found"));
 
 		if (user.getRole() != Role.CUSTOMER) {
 			throw new InvalidUserRoleException("Only customers can be converted to drivers");
