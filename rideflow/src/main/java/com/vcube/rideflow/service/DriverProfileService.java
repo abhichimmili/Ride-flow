@@ -83,46 +83,43 @@ public class DriverProfileService {
 	}
 
 	@Transactional
-	public void updateDriverLocation(Long driverProfileId, double latitude, double longitude,
-			String authenticatedEmail) {
+	public void updateMyLocation(String authenticatedEmail, double latitude, double longitude) {
 
 		if (!Double.isFinite(latitude) || latitude < -90 || latitude > 90) {
-			throw new IllegalArgumentException("Latitude must be between -90 and 90");
+
+			throw new IllegalArgumentException("Invalid latitude.");
 		}
 
 		if (!Double.isFinite(longitude) || longitude < -180 || longitude > 180) {
-			throw new IllegalArgumentException("Longitude must be between -180 and 180");
+
+			throw new IllegalArgumentException("Invalid longitude.");
 		}
 
-		DriverProfile profile = driverProfileRepository.findById(driverProfileId).orElseThrow(
-				() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + driverProfileId));
+		DriverProfile profile = driverProfileRepository.findByUser_Email(authenticatedEmail)
+				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found."));
 
-		String ownerEmail = profile.getUser().getEmail();
+		int updatedRows = driverProfileRepository.updateDriverLocation(profile.getId(), latitude, longitude);
 
-		if (!ownerEmail.equalsIgnoreCase(authenticatedEmail)) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot update another driver's location");
-		}
-		int updatedRows = driverProfileRepository.updateDriverLocation(driverProfileId, latitude, longitude);
-
-		if (updatedRows == 0) {
-			throw new DriverProfileNotFoundException("Driver profile not found with ID: " + driverProfileId);
+		if (updatedRows != 1) {
+			throw new DriverProfileNotFoundException("Driver profile not found.");
 		}
 	}
 
 	@Transactional
-	public void updateMyAvailability(Long driverId, AvailabilityStatus requestedStatus) {
+	public DriverProfileResponseDTO updateMyAvailability(String authenticatedEmail,
+			AvailabilityStatus requestedStatus) {
 
 		if (requestedStatus == AvailabilityStatus.ON_TRIP) {
 			throw new IllegalArgumentException("ON_TRIP status is managed by the ride lifecycle.");
 		}
 
-		DriverProfile driver = driverProfileRepository.findById(driverId)
+		DriverProfile driver = driverProfileRepository.findByUser_Email(authenticatedEmail)
 				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found."));
 
 		AvailabilityStatus currentStatus = driver.getAvailabilityStatus();
 
 		if (currentStatus == requestedStatus) {
-			return;
+			return mapToResponse(driver);
 		}
 
 		if (currentStatus == AvailabilityStatus.ON_TRIP) {
@@ -130,6 +127,7 @@ public class DriverProfileService {
 		}
 
 		if (requestedStatus == AvailabilityStatus.ONLINE && !driver.getLicenseVerified()) {
+
 			throw new IllegalStateException("Your license must be verified before going online.");
 		}
 
@@ -139,6 +137,10 @@ public class DriverProfileService {
 		if (updated != 1) {
 			throw new IllegalStateException("Your availability changed concurrently. Please try again.");
 		}
+
+		driver.setAvailabilityStatus(requestedStatus);
+
+		return mapToResponse(driver);
 	}
 
 	@Transactional

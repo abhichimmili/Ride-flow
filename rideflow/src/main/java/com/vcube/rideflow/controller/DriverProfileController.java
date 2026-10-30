@@ -65,8 +65,8 @@ public class DriverProfileController {
 	public ResponseEntity<DriverProfileResponseDTO> updateMyAvailability(
 			@Valid @RequestBody DriverAvailabilityUpdateDTO request, Authentication authentication) {
 
-		DriverProfileResponseDTO response = driverProfileService.updateMyAvailability(request.status(),
-				authentication.getName());
+		DriverProfileResponseDTO response = driverProfileService.updateMyAvailability(authentication.getName(),
+				request.status());
 
 		return ResponseEntity.ok(response);
 	}
@@ -85,12 +85,11 @@ public class DriverProfileController {
 		return ResponseEntity.ok(driverProfileService.findNearbyAvailableDrivers(latitude, longitude, radiusKm));
 	}
 
-	@PutMapping("/{id}/location")
-	public ResponseEntity<Void> updateDriverLocation(@PathVariable Long id,
-			@Valid @RequestBody DriverLocationUpdateDTO request, Authentication authentication) {
+	@PutMapping("/me/location")
+	public ResponseEntity<Void> updateDriverLocation(@Valid @RequestBody DriverLocationUpdateDTO request,
+			Authentication authentication) {
 
-		driverProfileService.updateDriverLocation(id, request.latitude(), request.longitude(),
-				authentication.getName());
+		driverProfileService.updateMyLocation(authentication.getName(), request.latitude(), request.longitude());
 
 		return ResponseEntity.noContent().build();
 	}
