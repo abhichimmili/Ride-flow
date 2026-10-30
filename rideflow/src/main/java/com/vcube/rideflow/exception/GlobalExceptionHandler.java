@@ -63,6 +63,12 @@ public class GlobalExceptionHandler {
 		return buildError(HttpStatus.CONFLICT, "The operation violates a database constraint");
 	}
 
+	@ExceptionHandler(RideAssignmentConflictException.class)
+	public ResponseEntity<Map<String, Object>> handleRideAssignment(RideAssignmentConflictException ex) {
+
+		return buildError(HttpStatus.CONFLICT, ex.getMessage());
+	}
+
 	private ResponseEntity<Map<String, Object>> buildError(HttpStatus status, String message) {
 
 		Map<String, Object> body = new HashMap<>();
@@ -97,7 +103,7 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(AccessDeniedException.class)
 	public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException exception) {
 
-		return buildError(HttpStatus.FORBIDDEN,exception.getMessage());
+		return buildError(HttpStatus.FORBIDDEN, exception.getMessage());
 	}
 
 	@ExceptionHandler(ResponseStatusException.class)
@@ -109,5 +115,11 @@ public class GlobalExceptionHandler {
 				ex.getReason() != null ? ex.getReason() : status.getReasonPhrase());
 
 		return ResponseEntity.status(status).body(response);
+	}
+
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<Map<String, Object>> handleIllegalStateException(IllegalStateException ex) {
+
+		return buildError(HttpStatus.CONFLICT, ex.getMessage());
 	}
 }

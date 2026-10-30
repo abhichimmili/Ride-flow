@@ -1,5 +1,6 @@
 package com.vcube.rideflow.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -7,9 +8,11 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.vcube.rideflow.dto.request.RideRequestDTO;
 import com.vcube.rideflow.dto.response.NearbyDriverResponseDTO;
@@ -18,12 +21,15 @@ import com.vcube.rideflow.entity.DriverProfile;
 import com.vcube.rideflow.entity.Ride;
 import com.vcube.rideflow.entity.User;
 import com.vcube.rideflow.entity.enums.AvailabilityStatus;
+import com.vcube.rideflow.entity.enums.RideOfferStatus;
 import com.vcube.rideflow.entity.enums.RideStatus;
 import com.vcube.rideflow.entity.enums.Role;
 import com.vcube.rideflow.exception.DriverProfileNotFoundException;
+import com.vcube.rideflow.exception.RideAssignmentConflictException;
 import com.vcube.rideflow.exception.RideNotFoundException;
 import com.vcube.rideflow.exception.UserNotFoundException;
 import com.vcube.rideflow.repository.DriverProfileRepository;
+import com.vcube.rideflow.repository.RideOfferRepository;
 import com.vcube.rideflow.repository.RideRepository;
 import com.vcube.rideflow.repository.UserRepository;
 
@@ -35,6 +41,7 @@ public class RideService {
 	private final DriverProfileRepository driverProfileRepository;
 	private final DriverProfileService driverProfileService;
 	private final RideDispatchService rideDispatchService;
+	private final RideOfferRepository rideOfferRepository;
 
 	private static final double DISPATCH_RADIUS_KM = 5.0;
 	private final FareService fareService;
@@ -42,7 +49,7 @@ public class RideService {
 
 	public RideService(RideRepository rideRepository, UserRepository userRepository, FareService fareService,
 			DriverProfileRepository driverProfileRepository, DriverProfileService driverProfileService,
-			RideDispatchService rideDispatchService) {
+			RideDispatchService rideDispatchService, RideOfferRepository rideOfferRepository) {
 		super();
 		this.rideRepository = rideRepository;
 		this.userRepository = userRepository;
@@ -50,6 +57,7 @@ public class RideService {
 		this.driverProfileRepository = driverProfileRepository;
 		this.driverProfileService = driverProfileService;
 		this.rideDispatchService = rideDispatchService;
+		this.rideOfferRepository = rideOfferRepository;
 	}
 
 	// 1. Create a ride for the authenticated customer
@@ -78,6 +86,12 @@ public class RideService {
 				.createPoint(new Coordinate(request.getPickupLongitude(), request.getPickupLatitude()));
 
 		ride.setPickupLocation(pickupLocation);
+
+		// Create drop-off location.
+		Point dropoffLocation = geometryFactory
+				.createPoint(new Coordinate(request.getDropoffLongitude(), request.getDropoffLatitude()));
+
+		ride.setDropoffLocation(dropoffLocation);
 
 		// Calculate the fare on the server.
 		ride.setEstimatedFare(fareService.calculateEstimatedFare(request.getDistanceKm()));
@@ -132,12 +146,15 @@ public class RideService {
 				.orElseThrow(() -> new RideNotFoundException("Ride not found with ID: " + rideId));
 
 		if (ride.getStatus() != RideStatus.REQUESTED) {
-			throw new IllegalStateException("Only rides with REQUESTED status can be cancelled");
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Only rides with REQUESTED status can be cancelled");
 		}
 
 		ride.setStatus(RideStatus.CANCELLED);
 
 		Ride cancelledRide = rideRepository.save(ride);
+
+		rideOfferRepository.cancelPendingOffers(rideId, RideOfferStatus.OFFERED, RideOfferStatus.CANCELLED,
+				LocalDateTime.now());
 
 		return mapToResponse(cancelledRide);
 	}
@@ -160,21 +177,84 @@ public class RideService {
 	@Transactional
 	public void acceptRide(Long rideId, Long driverId) {
 
+		// 1. Load the driver profile.
 		DriverProfile driver = driverProfileRepository.findById(driverId)
-				.orElseThrow(() -> new DriverProfileNotFoundException("Driver not found: " + driverId));
+				.orElseThrow(() -> new IllegalArgumentException("Driver profile not found"));
 
-		if (driver.getAvailabilityStatus() != AvailabilityStatus.ONLINE) {
-			throw new IllegalStateException("Driver is not available to accept rides");
+		// 2. Atomically claim the driver.
+		int driverUpdated = driverProfileRepository.claimDriverForRide(driverId, AvailabilityStatus.ONLINE,
+				AvailabilityStatus.ON_TRIP);
+
+		if (driverUpdated != 1) {
+			throw new RideAssignmentConflictException("Driver is no longer available");
 		}
 
-		int updated = rideRepository.acceptRide(rideId, driver, RideStatus.REQUESTED, RideStatus.DRIVER_ASSIGNED);
+		// 3. Atomically claim the ride.
+		int rideUpdated = rideRepository.acceptRide(rideId, driver, RideStatus.REQUESTED, RideStatus.DRIVER_ASSIGNED);
 
-		if (updated == 0) {
-			throw new IllegalStateException("Ride has already been accepted or is no longer available");
+		if (rideUpdated != 1) {
+			// Throwing a runtime exception rolls back the transaction.
+			throw new RideAssignmentConflictException("Ride has already been assigned or is no longer available");
+		}
+	}
+
+	@Transactional
+	public void markDriverArriving(Long rideId, String driverEmail) {
+
+		transitionDriverRide(rideId, driverEmail, RideStatus.DRIVER_ASSIGNED, RideStatus.DRIVER_ARRIVING);
+	}
+
+	@Transactional
+	public void markDriverArrived(Long rideId, String driverEmail) {
+
+		transitionDriverRide(rideId, driverEmail, RideStatus.DRIVER_ARRIVING, RideStatus.DRIVER_ARRIVED);
+	}
+
+	@Transactional
+	public void startRide(Long rideId, String driverEmail) {
+
+		transitionDriverRide(rideId, driverEmail, RideStatus.DRIVER_ARRIVED, RideStatus.STARTED);
+	}
+
+	@Transactional
+	public void completeRide(Long rideId, String driverEmail) {
+
+		DriverProfile driver = findDriverByEmail(driverEmail);
+
+		int rideUpdated = rideRepository.completeRide(rideId, driver.getId(), RideStatus.STARTED, RideStatus.COMPLETED,
+				LocalDateTime.now());
+
+		if (rideUpdated != 1) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Only your assigned STARTED ride can be completed");
 		}
 
-		driver.setAvailabilityStatus(AvailabilityStatus.ON_TRIP);
-		driverProfileRepository.save(driver);
+		int driverUpdated = driverProfileRepository.restoreDriverAvailability(driver.getId(),
+				AvailabilityStatus.ON_TRIP, AvailabilityStatus.ONLINE);
+
+		if (driverUpdated != 1) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Driver availability could not be restored");
+		}
+	}
+	
+	
+
+	private DriverProfile findDriverByEmail(String email) {
+
+		return driverProfileRepository.findByUser_Email(email).orElseThrow(
+				() -> new DriverProfileNotFoundException("Driver profile not found for authenticated user"));
+	}
+
+	private void transitionDriverRide(Long rideId, String driverEmail, RideStatus expectedStatus,
+			RideStatus newStatus) {
+
+		DriverProfile driver = findDriverByEmail(driverEmail);
+
+		int updated = rideRepository.transitionRideStatus(rideId, driver.getId(), expectedStatus, newStatus);
+
+		if (updated != 1) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+					"Ride is not assigned to you or the requested transition is invalid");
+		}
 	}
 
 }

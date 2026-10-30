@@ -35,6 +35,16 @@ public class RideRequestDTO {
 	@DecimalMax(value = "180.0", message = "Longitude cannot exceed 180")
 	private Double pickupLongitude;
 
+	@NotNull(message = "Drop-off latitude is required")
+	@DecimalMin(value = "-90.0", message = "Drop-off latitude cannot be less than -90")
+	@DecimalMax(value = "90.0", message = "Drop-off latitude cannot exceed 90")
+	private Double dropoffLatitude;
+
+	@NotNull(message = "Drop-off longitude is required")
+	@DecimalMin(value = "-180.0", message = "Drop-off longitude cannot be less than -180")
+	@DecimalMax(value = "180.0", message = "Drop-off longitude cannot exceed 180")
+	private Double dropoffLongitude;
+
 	public RideRequestDTO() {
 	}
 }

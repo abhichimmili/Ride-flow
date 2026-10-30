@@ -45,15 +45,7 @@ public class RideDispatchService {
 
 		for (NearbyDriverResponseDTO nearbyDriver : nearbyDrivers) {
 
-			DriverProfile driver = driverProfileRepository.findById(nearbyDriver.driverProfileId())
-					.orElseThrow(() -> new DriverProfileNotFoundException(
-							"Driver profile not found: " + nearbyDriver.driverProfileId()));
-
-			RideOffer offer = new RideOffer();
-			offer.setRide(ride);
-			offer.setDriver(driver);
-
-			rideOfferRepository.save(offer);
+			rideOfferRepository.insertOfferIfAbsent(rideId, nearbyDriver.driverProfileId());
 		}
 	}
 }

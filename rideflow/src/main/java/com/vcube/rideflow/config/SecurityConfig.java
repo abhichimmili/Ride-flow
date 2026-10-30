@@ -64,8 +64,10 @@ public class SecurityConfig {
 
 						.requestMatchers(HttpMethod.PATCH, "/api/rides/*/cancel").hasRole("CUSTOMER")
 
-						// Only drivers can accept rides
-						.requestMatchers(HttpMethod.POST, "/api/driver/accept-ride/**").hasRole("DRIVER")
+						// Only drivers can view, accept, and reject ride offers.
+						.requestMatchers("/api/driver/offers/**").hasRole("DRIVER")
+
+						.requestMatchers("/api/driver/rides/**").hasRole("DRIVER")
 
 						// Only administrators can access admin endpoints
 						.requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -75,6 +77,8 @@ public class SecurityConfig {
 
 						// Driver profile creation
 						.requestMatchers(HttpMethod.POST, "/api/driver-profiles").hasRole("DRIVER")
+
+						.requestMatchers(HttpMethod.PATCH, "/api/driver-profiles/me/availability").hasRole("DRIVER")
 
 						// Driver profile updates
 						.requestMatchers(HttpMethod.PUT, "/api/driver-profiles/**").hasAnyRole("DRIVER", "ADMIN")
@@ -90,7 +94,7 @@ public class SecurityConfig {
 
 						// Only admins can delete vehicles
 						.requestMatchers(HttpMethod.DELETE, "/api/vehicles/**").hasRole("ADMIN")
-						
+
 						// All other endpoints require authentication
 						.anyRequest().authenticated())
 

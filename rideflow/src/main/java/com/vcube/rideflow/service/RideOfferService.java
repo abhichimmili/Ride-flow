@@ -66,17 +66,12 @@ public class RideOfferService {
 		rideOfferRepository.save(offer);
 
 		// Cancel all remaining offers for this ride.
-		List<RideOffer> otherOffers = rideOfferRepository.findByRideId(rideId);
-
-		for (RideOffer otherOffer : otherOffers) {
-			if (!otherOffer.getDriver().getId().equals(driverId) && otherOffer.getStatus() == RideOfferStatus.OFFERED) {
-
-				otherOffer.setStatus(RideOfferStatus.CANCELLED);
-				otherOffer.setRespondedAt(LocalDateTime.now());
-			}
-		}
-
-		rideOfferRepository.saveAll(otherOffers);
+		rideOfferRepository.cancelPendingOffers(
+		        rideId,
+		        RideOfferStatus.OFFERED,
+		        RideOfferStatus.CANCELLED,
+		        LocalDateTime.now()
+		);
 	}
 
 	@Transactional

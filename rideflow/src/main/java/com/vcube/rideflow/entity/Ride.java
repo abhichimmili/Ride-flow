@@ -62,6 +62,9 @@ public class Ride {
 	@Column(name = "pickup_location", columnDefinition = "geography(Point, 4326)")
 	private Point pickupLocation;
 
+	@Column(name = "dropoff_location", columnDefinition = "geography(Point, 4326)")
+	private Point dropoffLocation;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 30)
 	private RideStatus status;

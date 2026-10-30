@@ -110,6 +110,58 @@ public class DriverProfileService {
 	}
 
 	@Transactional
+	public void updateMyAvailability(Long driverId, AvailabilityStatus requestedStatus) {
+
+		if (requestedStatus == AvailabilityStatus.ON_TRIP) {
+			throw new IllegalArgumentException("ON_TRIP status is managed by the ride lifecycle.");
+		}
+
+		DriverProfile driver = driverProfileRepository.findById(driverId)
+				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found."));
+
+		AvailabilityStatus currentStatus = driver.getAvailabilityStatus();
+
+		if (currentStatus == requestedStatus) {
+			return;
+		}
+
+		if (currentStatus == AvailabilityStatus.ON_TRIP) {
+			throw new IllegalStateException("Availability cannot be changed during an active ride.");
+		}
+
+		if (requestedStatus == AvailabilityStatus.ONLINE && !driver.getLicenseVerified()) {
+			throw new IllegalStateException("Your license must be verified before going online.");
+		}
+
+		int updated = driverProfileRepository.changeAvailabilityIfCurrentStatusMatches(driver.getId(), currentStatus,
+				requestedStatus);
+
+		if (updated != 1) {
+			throw new IllegalStateException("Your availability changed concurrently. Please try again.");
+		}
+	}
+
+	@Transactional
+	public DriverProfileResponseDTO updateLicenseVerification(Long driverProfileId, boolean verified) {
+
+		DriverProfile profile = driverProfileRepository.findById(driverProfileId).orElseThrow(
+				() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + driverProfileId));
+
+		// Update the verification decision.
+		profile.setLicenseVerified(verified);
+
+		// Prevent an unverified driver from remaining available.
+		if (!verified && profile.getAvailabilityStatus() == AvailabilityStatus.ONLINE) {
+
+			profile.setAvailabilityStatus(AvailabilityStatus.OFFLINE);
+		}
+
+		DriverProfile updatedProfile = driverProfileRepository.save(profile);
+
+		return mapToResponse(updatedProfile);
+	}
+
+	@Transactional
 	public DriverProfileResponseDTO updateDriverProfile(Long id, DriverProfileRequestDTO request) {
 
 		DriverProfile existingProfile = driverProfileRepository.findById(id)

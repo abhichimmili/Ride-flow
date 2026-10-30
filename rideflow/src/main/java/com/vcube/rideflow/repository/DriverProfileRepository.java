@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.vcube.rideflow.entity.DriverProfile;
+import com.vcube.rideflow.entity.enums.AvailabilityStatus;
 
 @Repository
 public interface DriverProfileRepository extends JpaRepository<DriverProfile, Long> {
@@ -63,6 +64,48 @@ public interface DriverProfileRepository extends JpaRepository<DriverProfile, Lo
 			""", nativeQuery = true)
 	int updateDriverLocation(@Param("driverProfileId") Long driverProfileId, @Param("latitude") double latitude,
 			@Param("longitude") double longitude);
+	
+	@Modifying
+	@Query("""
+	    UPDATE DriverProfile d
+	    SET d.availabilityStatus = :newStatus
+	    WHERE d.id = :driverId
+	      AND d.availabilityStatus = :expectedStatus
+	      AND d.licenseVerified = true
+	""")
+	int changeAvailabilityIfCurrentStatusMatches(
+	        @Param("driverId") Long driverId,
+	        @Param("expectedStatus") AvailabilityStatus expectedStatus,
+	        @Param("newStatus") AvailabilityStatus newStatus
+	);
+	
+	//For concurrency of driver assignment
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+	    UPDATE DriverProfile d
+	    SET d.availabilityStatus = :onTrip
+	    WHERE d.id = :driverId
+	      AND d.availabilityStatus = :online
+	      AND d.licenseVerified = true
+	""")
+	int claimDriverForRide(
+	        @Param("driverId") Long driverId,
+	        @Param("online") AvailabilityStatus online,
+	        @Param("onTrip") AvailabilityStatus onTrip
+	);
+	
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+	    UPDATE DriverProfile d
+	    SET d.availabilityStatus = :onlineStatus
+	    WHERE d.id = :driverId
+	      AND d.availabilityStatus = :onTripStatus
+	""")
+	int restoreDriverAvailability(
+	        @Param("driverId") Long driverId,
+	        @Param("onTripStatus") AvailabilityStatus onTripStatus,
+	        @Param("onlineStatus") AvailabilityStatus onlineStatus
+	);
 	
 	Optional<DriverProfile> findByUser_Email(String email);
 }
