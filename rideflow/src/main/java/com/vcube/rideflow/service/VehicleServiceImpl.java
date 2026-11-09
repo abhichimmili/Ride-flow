@@ -2,6 +2,7 @@ package com.vcube.rideflow.service;
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,7 @@ public class VehicleServiceImpl implements VehicleService {
 
     // 1. Register a vehicle
     @Override
-    public VehicleResponseDTO registerVehicle(VehicleRequestDTO request) {
+    public VehicleResponseDTO registerVehicle(VehicleRequestDTO request,String email) {
 
         if (vehicleRepository.existsByRegistrationNumber(
                 request.getRegistrationNumber())) {
@@ -43,7 +44,7 @@ public class VehicleServiceImpl implements VehicleService {
         }
 
         DriverProfile driver = driverProfileRepository
-                .findById(request.getDriverId())
+                .findByUser_Email(email)
                 .orElseThrow(() -> new DriverProfileNotFoundException(
                         "Driver profile not found"));
 

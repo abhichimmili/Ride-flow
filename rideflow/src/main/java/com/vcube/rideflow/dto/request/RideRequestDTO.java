@@ -2,6 +2,8 @@ package com.vcube.rideflow.dto.request;
 
 import java.math.BigDecimal;
 
+import com.vcube.rideflow.entity.enums.VehicleType;
+
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -44,6 +46,8 @@ public class RideRequestDTO {
 	@DecimalMin(value = "-180.0", message = "Drop-off longitude cannot be less than -180")
 	@DecimalMax(value = "180.0", message = "Drop-off longitude cannot exceed 180")
 	private Double dropoffLongitude;
+	
+	@NotNull(message = "Vehicle type is required") VehicleType vehicleType;
 
 	public RideRequestDTO() {
 	}

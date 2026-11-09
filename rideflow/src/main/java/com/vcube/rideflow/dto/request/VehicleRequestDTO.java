@@ -9,8 +9,6 @@ import lombok.Data;
 
 @Data
 public class VehicleRequestDTO {
-	@NotNull(message = "Driver ID is required")
-	private Long driverId;
 
 	@NotBlank(message = "Registration number is required")
 	@Size(max = 20, message = "Registration number cannot exceed 20 characters")

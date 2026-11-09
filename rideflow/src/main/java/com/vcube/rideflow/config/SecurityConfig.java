@@ -47,6 +47,8 @@ public class SecurityConfig {
 
 				// Authorization rules
 				.authorizeHttpRequests(auth -> auth
+						
+						.requestMatchers("/error").permitAll()
 
 						// Swagger UI and OpenAPI documentation
 						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**")
@@ -66,7 +68,7 @@ public class SecurityConfig {
 
 						// Only drivers can view, accept, and reject ride offers.
 						.requestMatchers("/api/driver/offers/**").hasRole("DRIVER")
-
+						
 						.requestMatchers("/api/driver/rides/**").hasRole("DRIVER")
 
 						// Only administrators can access admin endpoints
@@ -77,6 +79,7 @@ public class SecurityConfig {
 
 						// Driver profile creation
 						.requestMatchers(HttpMethod.POST, "/api/driver-profiles").hasRole("DRIVER")
+						
 
 						.requestMatchers(HttpMethod.PATCH, "/api/driver-profiles/me/availability").hasRole("DRIVER")
 

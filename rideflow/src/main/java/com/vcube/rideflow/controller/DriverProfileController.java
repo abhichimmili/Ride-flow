@@ -41,6 +41,15 @@ public class DriverProfileController {
 		return ResponseEntity.ok(driverProfileService.getAllDriverProfiles());
 	}
 
+	@GetMapping("/me")
+	public ResponseEntity<DriverProfileResponseDTO> getMyProfile(
+	        Authentication authentication) {
+
+	    return ResponseEntity.ok(
+	        driverProfileService.getMyProfile(authentication.getName())
+	    );
+	}
+	
 	@GetMapping("/{id}")
 	public ResponseEntity<DriverProfileResponseDTO> getDriverProfileById(@PathVariable Long id) {
 

@@ -75,6 +75,15 @@ public class DriverProfileService {
 	}
 
 	@Transactional(readOnly = true)
+	public DriverProfileResponseDTO getMyProfile(String authenticatedEmail) {
+
+		DriverProfile profile = driverProfileRepository.findByUser_Email(authenticatedEmail)
+				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found."));
+
+		return mapToResponse(profile);
+	}
+
+	@Transactional(readOnly = true)
 	public DriverProfileResponseDTO getDriverProfileById(Long id) {
 		DriverProfile profile = driverProfileRepository.findById(id)
 				.orElseThrow(() -> new DriverProfileNotFoundException("Driver profile not found with ID: " + id));
@@ -198,10 +207,11 @@ public class DriverProfileService {
 	}
 
 	@Transactional
-	public DriverProfileResponseDTO convertCustomerToDriver(DriverProfileRequestDTO request,String authenticatedEmail) {
+	public DriverProfileResponseDTO convertCustomerToDriver(DriverProfileRequestDTO request,
+			String authenticatedEmail) {
 
 		User user = userRepository.findByEmail(authenticatedEmail)
-		        .orElseThrow(() -> new UserNotFoundException("User not found"));
+				.orElseThrow(() -> new UserNotFoundException("User not found"));
 
 		if (user.getRole() != Role.CUSTOMER) {
 			throw new InvalidUserRoleException("Only customers can be converted to drivers");

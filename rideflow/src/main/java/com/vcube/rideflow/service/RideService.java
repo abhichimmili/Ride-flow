@@ -94,7 +94,8 @@ public class RideService {
 		ride.setDropoffLocation(dropoffLocation);
 
 		// Calculate the fare on the server.
-		ride.setEstimatedFare(fareService.calculateEstimatedFare(request.getDistanceKm()));
+		ride.setEstimatedFare(
+				fareService.estimateFare(request.getVehicleType(), request.getDistanceKm()).getEstimatedFare());
 
 		// New rides begin in the REQUESTED state.
 		ride.setStatus(RideStatus.REQUESTED);
@@ -235,8 +236,6 @@ public class RideService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "Driver availability could not be restored");
 		}
 	}
-	
-	
 
 	private DriverProfile findDriverByEmail(String email) {
 
@@ -256,5 +255,18 @@ public class RideService {
 					"Ride is not assigned to you or the requested transition is invalid");
 		}
 	}
+
+	@Transactional(readOnly = true)
+	public List<RideResponseDTO> getMyActiveRides(String driverEmail) {
+
+		DriverProfile driver = findDriverByEmail(driverEmail);
+
+		List<RideStatus> activeStatuses = List.of(RideStatus.DRIVER_ASSIGNED, RideStatus.DRIVER_ARRIVING,
+				RideStatus.DRIVER_ARRIVED, RideStatus.STARTED);
+
+		return rideRepository.findByDriver_IdAndStatusInOrderByRequestedAtDesc(driver.getId(), activeStatuses).stream()
+				.map(this::mapToResponse).toList();
+	}
+
 
 }

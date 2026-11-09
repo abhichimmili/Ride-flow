@@ -2,11 +2,13 @@ package com.vcube.rideflow.service;
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
+
 import com.vcube.rideflow.dto.request.VehicleRequestDTO;
 import com.vcube.rideflow.dto.response.VehicleResponseDTO;
 
 public interface VehicleService {
-	VehicleResponseDTO registerVehicle(VehicleRequestDTO vehicle);
+	VehicleResponseDTO registerVehicle(VehicleRequestDTO vehicle,String email);
 
 	List<VehicleResponseDTO> getAllVehicles();
 

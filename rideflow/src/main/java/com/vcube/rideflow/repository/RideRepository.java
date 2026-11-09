@@ -1,6 +1,7 @@
 package com.vcube.rideflow.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,8 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 
 	// Find all rides requested by a particular customer
 	List<Ride> findByCustomerIdOrderByRequestedAtDesc(Long customerId);
+
+	List<Ride> findByDriver_IdAndStatusInOrderByRequestedAtDesc(Long driverId, Collection<RideStatus> statuses);
 
 	// Find a particular ride belonging to a particular customer
 	Optional<Ride> findByIdAndCustomerId(Long id, Long customerId);
@@ -38,36 +41,28 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 			""")
 	int acceptRide(@Param("rideId") Long rideId, @Param("driver") DriverProfile driver,
 			@Param("requestedStatus") RideStatus requestedStatus, @Param("assignedStatus") RideStatus assignedStatus);
-	
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
-	    UPDATE Ride r
-	    SET r.status = :newStatus
-	    WHERE r.id = :rideId
-	      AND r.driver.id = :driverId
-	      AND r.status = :expectedStatus
-	""")
-	int transitionRideStatus(
-	        @Param("rideId") Long rideId,
-	        @Param("driverId") Long driverId,
-	        @Param("expectedStatus") RideStatus expectedStatus,
-	        @Param("newStatus") RideStatus newStatus
-	);
-	
+			    UPDATE Ride r
+			    SET r.status = :newStatus
+			    WHERE r.id = :rideId
+			      AND r.driver.id = :driverId
+			      AND r.status = :expectedStatus
+			""")
+	int transitionRideStatus(@Param("rideId") Long rideId, @Param("driverId") Long driverId,
+			@Param("expectedStatus") RideStatus expectedStatus, @Param("newStatus") RideStatus newStatus);
+
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
-	    UPDATE Ride r
-	    SET r.status = :completedStatus,
-	        r.completedAt = :completedAt
-	    WHERE r.id = :rideId
-	      AND r.driver.id = :driverId
-	      AND r.status = :startedStatus
-	""")
-	int completeRide(
-	        @Param("rideId") Long rideId,
-	        @Param("driverId") Long driverId,
-	        @Param("startedStatus") RideStatus startedStatus,
-	        @Param("completedStatus") RideStatus completedStatus,
-	        @Param("completedAt") LocalDateTime completedAt
-	);
+			    UPDATE Ride r
+			    SET r.status = :completedStatus,
+			        r.completedAt = :completedAt
+			    WHERE r.id = :rideId
+			      AND r.driver.id = :driverId
+			      AND r.status = :startedStatus
+			""")
+	int completeRide(@Param("rideId") Long rideId, @Param("driverId") Long driverId,
+			@Param("startedStatus") RideStatus startedStatus, @Param("completedStatus") RideStatus completedStatus,
+			@Param("completedAt") LocalDateTime completedAt);
 }
